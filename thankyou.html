@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>התשלום הושלם!</title>
+    <title>התשלום הושלם בהצלחה!</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
@@ -12,25 +12,34 @@
         body { font-family: 'Rubik', sans-serif; margin: 0; background-color: #f0f4f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; box-sizing: border-box; }
         .modal-container { background-color: white; padding: 30px 40px; border-radius: 16px; box-shadow: 0 20px 60px rgba(50, 50, 93, 0.15), 0 15px 35px rgba(0, 0, 0, 0.1); text-align: center; max-width: 520px; width: 100%; border: 1px solid #e6e9ee; animation: fadeInModal 0.6s ease-out forwards; }
         .icon-success { width: 80px; height: 80px; margin: 0 auto 20px auto; }
+        .icon-success .circle { stroke-dasharray: 264; stroke-dashoffset: 264; animation: drawCircle 0.8s ease-out forwards; }
+        .icon-success .checkmark { stroke-dasharray: 48; stroke-dashoffset: 48; animation: drawCheckmark 0.4s 0.5s ease-out forwards; }
+        @keyframes drawCircle { to { stroke-dashoffset: 0; } }
+        @keyframes drawCheckmark { to { stroke-dashoffset: 0; } }
         h1 { font-size: 2rem; font-weight: 700; color: #334155; margin-bottom: 15px; }
         p { font-size: 1.1rem; color: #64748b; line-height: 1.7; margin-bottom: 25px; }
-        .link-container { margin-top: 20px; padding: 20px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #e6e9ee; }
-        .link-container a { color: #435ebe; font-weight: 500; font-size: 1.1rem; word-break: break-all; }
+        .email-display { font-weight: bold; color: #334155; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #435ebe; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <div class="modal-container">
-        <svg class="icon-success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-             <circle cx="50" cy="50" r="42" fill="none" stroke="#27ae60" stroke-width="4"/>
-             <path fill="none" stroke="#27ae60" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M34,50 l12,12 l20,-20"/>
-        </svg>
-        <h1>התשלום הושלם בהצלחה!</h1>
-        <p>יצרנו עבורך קישור אישי וחד-פעמי לשאלון האבחון. שמור אותו, הוא שלך בלבד.</p>
-        <div id="link-placeholder" class="link-container">
+    <div class="modal-container" id="main-content">
+        <div id="loading-state">
             <div class="loader"></div>
-            <p style="font-size:0.9rem; color:#94a3b8;">מייצר קישור אישי...</p>
+            <p>מאמתים את התשלום ושולחים לך מייל...</p>
+        </div>
+        <div id="success-state" style="display:none;">
+            <svg class="icon-success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+                 <circle class="circle" cx="50" cy="50" r="42" fill="none" stroke="#27ae60" stroke-width="4"/>
+                 <path class="checkmark" fill="none" stroke="#27ae60" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" d="M34,50 l12,12 l20,-20"/>
+            </svg>
+            <h1>התשלום הושלם בהצלחה!</h1>
+            <p>שלחנו כעת קישור אישי וייחודי לכניסה לשאלון לכתובת המייל: <br><strong id="customer-email" class="email-display"></strong></p>
+            <p style="font-size: 0.9rem; color: #94a3b8;">(אם המייל לא הגיע תוך מספר דקות, אנא בדוק את תיבת הספאם או צור עמנו קשר).</p>
+        </div>
+        <div id="error-state" style="display:none;">
+            <p style="color:red;">אירעה שגיאה בתהליך. אנא צור עמנו קשר עם פרטי ההזמנה.</p>
         </div>
     </div>
 
@@ -38,13 +47,18 @@
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyHxsebUL_cESS5yiUiZGM6msneUVKJRncSFSPkhjhWUEJwNnHe0aHSg-620zd5aLclHA/exec";
 
         (function() {
+            const loadingDiv = document.getElementById('loading-state');
+            const successDiv = document.getElementById('success-state');
+            const errorDiv = document.getElementById('error-state');
+            const emailSpan = document.getElementById('customer-email');
+
             const urlParams = new URLSearchParams(window.location.search);
             const customerEmail = urlParams.get('email');
-            const linkPlaceholder = document.getElementById('link-placeholder');
 
             if (customerEmail) {
+                emailSpan.textContent = customerEmail;
                 const requestBody = {
-                    action: 'savePaidEmailAndGetToken',
+                    action: 'processPaymentAndSendEmail',
                     payload: { email: customerEmail }
                 };
 
@@ -55,21 +69,23 @@
                 })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success && data.token) {
-                        const questionnaireBaseUrl = 'https://nzinok.github.io/nisuy-agbala/';
-                        const uniqueLink = `${questionnaireBaseUrl}?token=${data.token}`;
-                        linkPlaceholder.innerHTML = `<p style="margin-bottom:10px;">הקישור האישי שלך:</p><a href="${uniqueLink}">${uniqueLink}</a>`;
+                    loadingDiv.style.display = 'none';
+                    if (data.success) {
+                        successDiv.style.display = 'block';
                     } else {
-                        linkPlaceholder.innerHTML = `<p style="color:red;">אירעה שגיאה ביצירת הקישור. אנא צור קשר.</p>`;
-                        console.error("Failed to get token:", data.message);
+                        errorDiv.style.display = 'block';
+                        console.error("API Error:", data.message);
                     }
                 })
                 .catch(error => {
-                     linkPlaceholder.innerHTML = `<p style="color:red;">אירעה שגיאת תקשורת. אנא רענן ונסה שוב או צור קשר.</p>`;
-                     console.error("Error fetching token:", error);
+                     loadingDiv.style.display = 'none';
+                     errorDiv.style.display = 'block';
+                     console.error("Fetch Error:", error);
                 });
             } else {
-                 linkPlaceholder.innerHTML = `<p style="color:red;">לא זוהה אימייל. לא ניתן ליצור קישור.</p>`;
+                loadingDiv.style.display = 'none';
+                errorDiv.style.display = 'block';
+                errorDiv.textContent = 'שגיאה: לא זוהתה כתובת אימייל לצורך שליחת הקישור.';
             }
         })();
     </script>
