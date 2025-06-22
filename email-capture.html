@@ -65,22 +65,30 @@
 
         emailForm.addEventListener('submit', function(event) {
             event.preventDefault();
+            console.log("Submit button clicked, event listener started.");
+
             const email = emailInput.value;
             const confirmEmail = confirmEmailInput.value;
             if (email !== confirmEmail) { emailError.textContent = 'כתובות האימייל אינן תואמות.'; return; }
             if (!validateEmail(email)) { emailError.textContent = 'נא להזין כתובת אימייל חוקית.'; return; }
+            
+            console.log("Email validated successfully:", email);
 
             const baseReturnUrl = 'https://nzinok.github.io/nisuy-agbala/thankyou.html';
             const returnUrlWithEmail = `${baseReturnUrl}?email=${encodeURIComponent(email)}`;
 
             if (DEMO_MODE) {
+                console.log("Demo mode is ON. Redirecting to thank you page...");
                 window.location.href = returnUrlWithEmail;
             } else {
+                console.log("Live mode is ON. Preparing Upay form.");
                 const upayForm = document.createElement('form');
                 upayForm.name = 'upayform';
                 upayForm.action = 'https://app.upay.co.il/API6/clientsecure/redirectpage.php';
                 upayForm.method = 'post';
                 upayForm.style.display = 'none';
+
+                console.log("Form element created. Action:", upayForm.action);
 
                 const fields = { 
                     email: '8447650@gmail.com', 
@@ -98,6 +106,7 @@
                     lang: 'HE', 
                     currency: 'NIS'
                 };
+                console.log("Populating fields:", fields);
                 
                 for (const key in fields) {
                     const input = document.createElement('input');
@@ -107,16 +116,17 @@
                     upayForm.appendChild(input);
                 }
                 
-                // --- THE FIX ---
-                // Add the submit button itself (as a hidden field) to the form
-                const submitInput = document.createElement('input');
-                submitInput.type = 'hidden';
-                submitInput.name = 'submit';
-                submitInput.value = 'Make payments with upay';
-                upayForm.appendChild(submitInput);
-                
+                console.log("Appending form to the document body.");
                 document.body.appendChild(upayForm);
-                upayForm.submit();
+                
+                try {
+                    console.log("Attempting to execute upayForm.submit()...");
+                    upayForm.submit();
+                    console.log("Form submit command was executed without throwing an error."); // This line might not be reached if redirect is successful
+                } catch (submitError) {
+                    console.error("CRITICAL ERROR: Browser failed to submit the form.", submitError);
+                    alert("אירעה שגיאה קריטית בתהליך המעבר לתשלום. אנא בדוק אם חוסם קופצים פעיל ונסה שוב.");
+                }
             }
         });
 
