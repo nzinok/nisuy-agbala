@@ -77,14 +77,44 @@
                 window.location.href = returnUrlWithEmail;
             } else {
                 const upayForm = document.createElement('form');
+                upayForm.name = 'upayform';
                 upayForm.action = 'https://app.upay.co.il/API6/clientsecure/redirectpage.php';
                 upayForm.method = 'post';
-                const fields = { email: '8447650@gmail.com', amount: '149', returnurl: returnUrlWithEmail, paymentdetails: 'אבחון תעסוקתי מלא', maxpayments: '1', livesystem: '1', lang: 'HE', currency: 'NIS' };
+                upayForm.style.display = 'none';
+
+                const fields = { 
+                    email: '8447650@gmail.com', 
+                    amount: '149', 
+                    returnurl: returnUrlWithEmail, 
+                    ipnurl: '',
+                    paymentdetails: 'אבחון תעסוקתי מלא', 
+                    maxpayments: '1', 
+                    livesystem: '1',
+                    commissionreduction: '',
+                    createinvoiceandreceipt: '0',
+                    createinvoice: '0',
+                    createreceipt: '0',
+                    refername: 'UPAY',
+                    lang: 'HE', 
+                    currency: 'NIS'
+                };
+                
                 for (const key in fields) {
                     const input = document.createElement('input');
-                    input.type = 'hidden'; input.name = key; input.value = fields[key];
+                    input.type = 'hidden'; 
+                    input.name = key; 
+                    input.value = fields[key];
                     upayForm.appendChild(input);
                 }
+                
+                // --- THE FIX ---
+                // Add the submit button itself (as a hidden field) to the form
+                const submitInput = document.createElement('input');
+                submitInput.type = 'hidden';
+                submitInput.name = 'submit';
+                submitInput.value = 'Make payments with upay';
+                upayForm.appendChild(submitInput);
+                
                 document.body.appendChild(upayForm);
                 upayForm.submit();
             }
