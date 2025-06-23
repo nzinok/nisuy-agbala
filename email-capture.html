@@ -65,7 +65,7 @@
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
                 validateAndCompareEmails();
-            }, 500); // Wait for 500ms of inactivity before validating
+            }, 500); // Wait for 1000ms of inactivity before validating
         }
 
         emailInput.addEventListener('input', handleInputValidation);
