@@ -38,7 +38,7 @@
     </div>
 
     <script>
-        const DEMO_MODE = true; // שנה ל-false כדי לעבור לתשלום אמיתי
+        const DEMO_MODE = false; // שנה ל-true כדי לבדוק בלי תשלום אמיתי
 
         const emailForm = document.getElementById('emailForm');
         const emailInput = document.getElementById('emailInput');
@@ -47,11 +47,9 @@
         const emailError = document.getElementById('emailError');
         let debounceTimer;
 
-        // --- FEATURE 1: Prevent pasting into the confirmation field ---
         confirmEmailInput.addEventListener('paste', function(event) {
             event.preventDefault();
             emailError.textContent = 'לצורך אימות, אנא הקלד את הכתובת שוב.';
-            // Clear the paste-related error message after 3 seconds
             setTimeout(() => {
                 if (emailError.textContent === 'לצורך אימות, אנא הקלד את הכתובת שוב.') {
                     emailError.textContent = '';
@@ -59,44 +57,36 @@
             }, 3000);
         });
 
-        // --- FEATURE 2: Debounced real-time validation ---
-        // This function handles the delayed validation
         function handleInputValidation() {
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
                 validateAndCompareEmails();
-            }, 500); // Wait for 1000ms of inactivity before validating
+            }, 500);
         }
 
         emailInput.addEventListener('input', handleInputValidation);
         confirmEmailInput.addEventListener('input', handleInputValidation);
 
-        // This function contains the actual validation logic
         function validateAndCompareEmails() {
             const email = emailInput.value;
             const confirmEmail = confirmEmailInput.value;
             let isFormValid = true;
 
-            // Check for mismatch only if the confirmation field has content
             if (confirmEmail.length > 0 && email !== confirmEmail) {
                 emailError.textContent = 'כתובות האימייל אינן תואמות.';
                 confirmEmailInput.classList.add('invalid');
                 isFormValid = false;
             } else {
-                // Only clear the error if it's the mismatch error
                 if (emailError.textContent === 'כתובות האימייל אינן תואמות.') {
                     emailError.textContent = '';
                 }
                 confirmEmailInput.classList.remove('invalid');
             }
 
-            // Check if the primary email is valid
             if (email.length > 0 && !validateEmail(email)) {
-                // You can add an error for the first field if you want
                 isFormValid = false;
             }
 
-            // Enable or disable the button based on the final validity
             if (isFormValid && email && confirmEmail && email === confirmEmail) {
                 submitBtn.disabled = false;
                 submitBtn.classList.add('enabled');
@@ -106,11 +96,9 @@
             }
         }
 
-        // --- Main form submission logic ---
         emailForm.addEventListener('submit', function(event) {
             event.preventDefault();
             
-            // Run a final validation check on submit
             validateAndCompareEmails();
             if (submitBtn.disabled) {
                 if(!emailError.textContent) {
@@ -130,18 +118,37 @@
                 upayForm.action = 'https://app.upay.co.il/API6/clientsecure/redirectpage.php';
                 upayForm.method = 'post';
                 upayForm.style.display = 'none';
-                const fields = { email: '8447650@gmail.com', amount: '149', returnurl: returnUrlWithEmail, paymentdetails: 'אבחון תעסוקתי מלא', maxpayments: '1', livesystem: '1', lang: 'HE', currency: 'NIS' };
+
+                const fields = { 
+                    email: '8447650@gmail.com', 
+                    amount: '2', // <-- עודכן לפי הטופס החדש
+                    returnurl: returnUrlWithEmail, 
+                    paymentdetails: 'אבחון תעסוקתי מקיף - מחיר השקה', // <-- עודכן לפי הטופס החדש
+                    ipnurl: '',
+                    maxpayments: '1', 
+                    livesystem: '1',
+                    commissionreduction: '',
+                    createinvoiceandreceipt: '0',
+                    createinvoice: '0',
+                    createreceipt: '0',
+                    refername: 'UPAY',
+                    lang: 'HE', 
+                    currency: 'NIS'
+                };
+                
                 for (const key in fields) {
                     const input = document.createElement('input');
-                    input.type = 'hidden'; input.name = key; input.value = fields[key];
+                    input.type = 'hidden'; 
+                    input.name = key; 
+                    input.value = fields[key];
                     upayForm.appendChild(input);
                 }
+                
                 document.body.appendChild(upayForm);
                 upayForm.submit();
             }
         });
 
-        // Regex helper function for email validation
         function validateEmail(email) {
             const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
             return re.test(String(email).toLowerCase());
