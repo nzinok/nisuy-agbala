@@ -38,7 +38,7 @@
     </div>
 
     <script>
-        const DEMO_MODE = false; // שנה ל-true כדי לבדוק בלי תשלום אמיתי
+        const DEMO_MODE = false;
 
         const emailForm = document.getElementById('emailForm');
         const emailInput = document.getElementById('emailInput');
@@ -121,9 +121,9 @@
 
                 const fields = { 
                     email: '8447650@gmail.com', 
-                    amount: '2', // <-- עודכן לפי הטופס החדש
+                    amount: '2',
                     returnurl: returnUrlWithEmail, 
-                    paymentdetails: 'אבחון תעסוקתי מקיף - מחיר השקה', // <-- עודכן לפי הטופס החדש
+                    paymentdetails: 'אבחון תעסוקתי מקיף - מחיר השקה',
                     ipnurl: '',
                     maxpayments: '1', 
                     livesystem: '1',
@@ -143,6 +143,13 @@
                     input.value = fields[key];
                     upayForm.appendChild(input);
                 }
+
+                // This is the small but important fix to ensure submission
+                const submitInput = document.createElement('input');
+                submitInput.type = 'hidden';
+                submitInput.name = 'submit';
+                submitInput.value = 'pay';
+                upayForm.appendChild(submitInput);
                 
                 document.body.appendChild(upayForm);
                 upayForm.submit();
