@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>אימות כתובת מייל</title>
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/nzinok/questionnaire-site/fe58ebe6cc328ce515da4bdece58cb1886d3c9bd/%D7%A0%D7%A7%D7%95%D7%93%D7%AA%20%D7%96%D7%99%D7%A0%D7%95%D7%A7%20%D7%A2%D7%9C%20%D7%A8%D7%A7%D7%A2%20%D7%98%D7%A8%D7%99%D7%A7%D7%95%D7%9C%D7%95%D7%A8%20(1).png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
@@ -38,8 +39,7 @@
     </div>
 
     <script>
-        const DEMO_MODE = false; // שנה ל-true כדי לבדוק בלי תשלום אמיתי
-
+        const DEMO_MODE = true;
         const emailForm = document.getElementById('emailForm');
         const emailInput = document.getElementById('emailInput');
         const confirmEmailInput = document.getElementById('confirmEmailInput');
@@ -98,7 +98,6 @@
 
         emailForm.addEventListener('submit', function(event) {
             event.preventDefault();
-            
             validateAndCompareEmails();
             if (submitBtn.disabled) {
                 if(!emailError.textContent) {
@@ -118,32 +117,17 @@
                 upayForm.action = 'https://app.upay.co.il/API6/clientsecure/redirectpage.php';
                 upayForm.method = 'post';
                 upayForm.style.display = 'none';
-
-                const fields = { 
-                    email: '8447650@gmail.com', 
-                    amount: '2', // <-- עודכן לפי הטופס החדש
-                    returnurl: returnUrlWithEmail, 
-                    paymentdetails: 'אבחון תעסוקתי מקיף - מחיר השקה', // <-- עודכן לפי הטופס החדש
-                    ipnurl: '',
-                    maxpayments: '1', 
-                    livesystem: '1',
-                    commissionreduction: '',
-                    createinvoiceandreceipt: '0',
-                    createinvoice: '0',
-                    createreceipt: '0',
-                    refername: 'UPAY',
-                    lang: 'HE', 
-                    currency: 'NIS'
-                };
-                
+                const fields = { email: '8447650@gmail.com', amount: '2', returnurl: returnUrlWithEmail, paymentdetails: 'אבחון תעסוקתי מקיף - מחיר השקה', ipnurl: '', maxpayments: '1', livesystem: '1', commissionreduction: '', createinvoiceandreceipt: '0', createinvoice: '0', createreceipt: '0', refername: 'UPAY', lang: 'HE', currency: 'NIS' };
                 for (const key in fields) {
                     const input = document.createElement('input');
-                    input.type = 'hidden'; 
-                    input.name = key; 
-                    input.value = fields[key];
+                    input.type = 'hidden'; input.name = key; input.value = fields[key];
                     upayForm.appendChild(input);
                 }
-                
+                const submitInput = document.createElement('input');
+                submitInput.type = 'hidden';
+                submitInput.name = 'submit';
+                submitInput.value = 'pay';
+                upayForm.appendChild(submitInput);
                 document.body.appendChild(upayForm);
                 upayForm.submit();
             }
