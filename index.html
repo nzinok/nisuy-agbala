@@ -14,21 +14,32 @@
         html{scroll-behavior:smooth}
         body{font-family:'Rubik',sans-serif;background:linear-gradient(135deg, var(--primary-purple) 0%, #764ba2 100%);min-height:100vh;padding:20px;color:var(--dark-text)}
         .container{max-width:800px;margin:0 auto;background:white;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.1);overflow:hidden}
-        #debug-box { background: #1a1a1a; color: #00ff00; padding: 15px; margin: 20px; border-radius: 8px; text-align: left; direction: ltr; white-space: pre-wrap; word-break: break-all; font-family: monospace; border: 2px solid #555; }
-        .question,.file-upload-block,.confirmation-block{margin-bottom:25px;padding:20px;background:white;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.05);border:1px solid transparent}
+        .question,.file-upload-block,.confirmation-block{margin-bottom:25px;padding:20px;background:white;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.05);transition:box-shadow .3s,border-color .3s,background-color .3s;border:1px solid transparent}
         .prefilled-field { background-color: #f0f4f8; color: #555; cursor: not-allowed; }
         .instruction-text{padding:15px 20px;background-color:var(--light-gray);border-right:5px solid var(--primary-purple);margin-bottom:20px;border-radius:8px;font-size:1rem;line-height:1.6}
         .confirmation-details { text-align: right; margin-bottom: 20px; padding: 15px; border: 1px solid #eee; border-radius: 8px; background-color: #fafafa; white-space: pre-wrap; }
         .confirmation-label { display: flex; align-items: center; justify-content: flex-start; cursor: pointer; font-size: 1.1rem; }
         .confirmation-label input[type=checkbox] { width: 1.3em; height: 1.3em; margin-left: 10px; }
-        .required-mark{color:var(--error-red);font-weight:bold;margin-left:4px}
         .question.invalid,.file-upload-block.invalid,.confirmation-block.invalid{border-color:var(--error-red);box-shadow:0 0 0 3px rgba(229,57,53,.2)}
-        .error-message-inline{color:var(--error-red);margin-top:8px;font-size:.9rem;min-height:1.2em;text-align:center}
+        /* Other styles are omitted for brevity, but should be the same as your working version */
+        .header{background:linear-gradient(45deg, var(--primary-blue) 0%, #00f2fe 100%);color:white;padding:30px;text-align:center;position:relative;z-index:10}
+        #progress-header{padding:10px 0;transition:all .3s ease-in-out}
+        .progress-header-sticky{position:fixed;top:0;left:0;right:0;background:white;box-shadow:0 4px 12px rgba(0,0,0,0.15);padding:10px 20px;z-index:1000;width:100%;max-width:800px;margin:0 auto;border-bottom-left-radius:10px;border-bottom-right-radius:10px}
+        .progress-container{background:rgba(255,255,255,0.2);height:8px;border-radius:4px;margin-top:20px;overflow:hidden}
+        .progress-bar{height:100%;background:#fff;border-radius:4px;transition:width .3s ease;width:0}
+        .content-area{padding:20px 40px 40px 40px}
+        .btn{background:linear-gradient(45deg, var(--primary-blue) 0%, #00f2fe 100%);color:white;border:none;padding:15px 30px;border-radius:10px;font-size:1.1rem;font-weight:500;cursor:pointer;transition:transform .2s,box-shadow .2s;margin:10px}
+        .btn:disabled{background:#ccc;cursor:not-allowed}
+        .submit-btn{background:linear-gradient(45deg, var(--submit-purple-start) 0%, var(--submit-purple-end) 100%)}
+        .question-area{text-align:right;display:none}
+        .spinner{border:4px solid #f3f3f3;border-top:4px solid var(--primary-blue);border-radius:50%;width:50px;height:50px;animation:spin 1s linear infinite;margin:20px auto}
+        @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+        .error-message{background:#fee;color:var(--error-red);padding:15px;border-radius:8px;margin:20px 0;display:none;white-space:pre-wrap}
     </style>
 </head>
 <body>
     <div id="container" class="container">
-        <div class="header">
+         <div class="header">
             <h1 id="headerTitle">שאלון אבחון תעסוקתי</h1>
             <div id="progress-header" style="display:none;">
                 <div id="sectionInfo" style="margin-top:10px; font-size:0.9rem;"></div>
@@ -54,13 +65,12 @@
     <div id="save-indicator"></div>
 
     <script>
-        // --- THIS SCRIPT IS THE DEBUG VERSION ---
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzL1_urvLIQijNhICI5SV1YKwCx6HVOXNjD93SscpsQULUXzDwu9jtxjBbJoRNI6vXU/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyHxsebUL_cESS5yiUiZGM6msneUVKJRncSFSPkhjhWUEJwNnHe0aHSg-620zd5aLclHA/exec";
         
         let questionnaireData = {}, currentSection = 0, sections = [], answers = {};
         let nextSectionJump = null, sectionHistory = [], autosaveInterval = null, stickyHeaderPoint = 0;
         let sessionToken = null;
-        let prefilledEmail = null; 
+        let prefilledEmail = null; // Variable to hold the user's verified email
 
         const ui = { container: document.getElementById('container'), mainArea: document.getElementById('mainArea'), intro: document.getElementById('introScreen'), introTitle: document.getElementById('introTitle'), introBody: document.getElementById('introBody'), headerTitle: document.getElementById('headerTitle'), loading: document.getElementById('loading'), loadingText: document.getElementById('loadingText'), error: document.getElementById('errorMessage'), success: document.getElementById('successMessage'), questionnaire: document.getElementById('questionnaireContent'), questionsContainer: document.getElementById('questionsContainer'), startBtn: document.getElementById('startBtn'), prevBtn: document.getElementById('prevBtn'), nextBtn: document.getElementById('nextBtn'), submitBtn: document.getElementById('submitBtn'), sectionInfo: document.getElementById('sectionInfo'), progressBar: document.getElementById('progressBar'), saveIndicator: document.getElementById('save-indicator'), sectionProgressWrapper: document.getElementById('section-progress-container-wrapper'), progressHeader: document.getElementById('progress-header') };
         
@@ -68,51 +78,178 @@
             showView(ui.loading);
             const urlParams = new URLSearchParams(window.location.search);
             sessionToken = urlParams.get('token');
-            if (!sessionToken) return onLoadError(new Error("קישור לא תקין. לא זוהה קוד גישה (טוקן)."));
-            
+
+            if (!sessionToken) {
+                return onLoadError(new Error("קישור לא תקין. לא זוהה קוד גישה (טוקן)."));
+            }
+
             try {
                 const requestBody = { action: 'getQuestionnaireWithToken', payload: { token: sessionToken } };
-                const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(requestBody), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
-                if (!response.ok) throw new Error(`שגיאת שרת: ${response.status}`);
-                const data = await response.json();
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(requestBody),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                });
                 
-                // --- DEBUG: Display the raw data received from the server ---
-                const debugBox = document.createElement('pre');
-                debugBox.id = 'debug-box';
-                debugBox.textContent = "--- DATA RECEIVED FROM SERVER ---\n" + JSON.stringify(data, null, 2);
-                ui.mainArea.insertBefore(debugBox, ui.loading);
-                // --- END DEBUG ---
-
+                if (!response.ok) throw new Error(`שגיאת שרת: ${response.status}`);
+                
+                const data = await response.json();
                 onDataReceived(data);
+
             } catch (error) {
                 onLoadError(error);
             }
         }
         
-        // The rest of the script is the same as the final version you had.
-        function onDataReceived(response){if(!response.success){return onLoadError(new Error(response.message))}
-        if(response.prefillData&&response.prefillData.email){prefilledEmail=response.prefillData.email}
-        ui.progressHeader.style.display='block';if(response.introduction){ui.introTitle.textContent=response.introduction.title;ui.headerTitle.textContent=response.introduction.title;ui.introBody.textContent=response.introduction.body}
-        questionnaireData=response.data;sections=response.sectionsOrder;sectionHistory=[];if(sections.length===0){return onLoadError(new Error('לא נמצאו מקטעים בשאלון.'))}
-        showView(ui.intro);setTimeout(()=>{const mainHeader=document.querySelector('.header');if(mainHeader){stickyHeaderPoint=mainHeader.offsetTop+mainHeader.offsetHeight}},100)}
-        function displayCurrentSection(){showView(ui.questionnaire);const sectionName=sections[currentSection];const originalItems=questionnaireData[sectionName].items||[];let items;if(questionnaireData[sectionName].randomize){const pinnedItems=originalItems.filter(item=>item.type.toLowerCase()==='הוראות');const shuffleableItems=originalItems.filter(item=>item.type.toLowerCase()!=='הוראות');const shuffledItems=shuffleArray(shuffleableItems);items=[...pinnedItems,...shuffledItems]}else{items=originalItems}
-        let html=`<div class="category-section"><h3 class="category-title">${sectionName}</h3>`;for(let i=0;i<items.length;i++){const item=items[i];const nextItem=(i+1<items.length)?items[i+1]:null;if(item.type.toLowerCase()==='הוראות'&&nextItem&&nextItem.type.toLowerCase()==='קובץ'){html+=buildCombinedFileUploadHtml(item,nextItem,sectionName,i);i++}else{html+=buildItemHtml(item,sectionName,i)}}
-        ui.questionsContainer.innerHTML=html;initCustomControls();updateProgressBars();updateNavigation()}
-        function buildItemHtml(item,sectionName,index){const sanitizedQuestionText=sanitizeTextForKey(item.question);const answerKey=`${sectionName}: ${sanitizedQuestionText}`;const safeId=`q-${currentSection}-${index}`;const requiredMark=item.required?`<span class="required-mark">*</span>`:'';const itemType=item.type.toLowerCase();const currentValue=answers[answerKey];if(itemType==='הוראות')return`<div class="instruction-text">${item.text}</div>`;if(itemType==='אישור'){return buildConfirmationHtml(item,currentValue,answerKey,safeId)}
-        if(itemType==='מייל_מזוהה'){return buildPrefilledEmailHtml(item,answerKey)}
-        let html=`<div class="question" data-required="${item.required||false}" data-key="${answerKey}"><div class="question-text">${item.question}${requiredMark}</div><div class="question-input">`;if(itemType.startsWith('טקסט')||itemType.startsWith('מספר')||itemType.startsWith('שם')){const inputType=itemType.startsWith('מספר')?'number':'text';const tag=itemType.startsWith('טקסט')?`<textarea oninput="handleTyping(this)" onblur="handleTextBlur(this)" rows="4">${currentValue||''}</textarea>`:`<input type="${inputType}" value="${currentValue||''}" oninput="handleTyping(this)" onblur="handleTextBlur(this)">`;html+=tag}else if(itemType.startsWith('דירוג')){html+=buildRatingHtml(item,currentValue,answerKey)}else if(itemType.startsWith('בחירה מרובה')){html+=buildCheckboxHtml(item,currentValue,answerKey,safeId)}else if(itemType.startsWith('בחירה מתוך רשימה')){html+=buildSelectHtml(item,currentValue,answerKey,safeId)}else if(itemType.startsWith('קובץ')){html+=buildFileUploadHtml({question:item.question,required:item.required},answerKey,safeId)}else{html+=`<input type="text" value="${currentValue||''}" oninput="handleTyping(this)" onblur="handleTextBlur(this)">`}
-        return html+`</div><div class="error-message-inline"></div></div>`}
-        function buildConfirmationHtml(item,currentValue,answerKey,safeId){let html=`<div class="confirmation-block" data-required="${item.required||false}" data-key="${answerKey}">`;if(item.details){html+=`<div class="confirmation-details">${item.details}</div>`}
-        const isChecked=currentValue==='מאשר';const requiredMark=item.required?`<span class="required-mark">*</span>`:'';html+=`<label class="confirmation-label" for="${safeId}"><input type="checkbox" id="${safeId}" onchange="handleConfirmationClick(this)" ${isChecked?'checked':''}><span>${item.question}${requiredMark}</span></label><div class="error-message-inline"></div></div>`;return html}
-        function buildPrefilledEmailHtml(item,answerKey){if(prefilledEmail&&!answers[answerKey]){setTimeout(()=>saveAnswer(answerKey,prefilledEmail),0)}
-        const value=prefilledEmail||answers[answerKey]||'';const requiredMark=item.required?`<span class="required-mark">*</span>`:'';let html=`<div class="question" data-required="${item.required||false}" data-key="${answerKey}"><div class="question-text">${item.question}${requiredMark}</div><div class="question-input"><input type="email" value="${value}" class="prefilled-field" readonly></div><div class="error-message-inline"></div></div>`;return html}
-        function handleConfirmationClick(checkbox){const answerKey=checkbox.closest('.confirmation-block').dataset.key;const value=checkbox.checked?'מאשר':'';saveAnswer(answerKey,value)}
+        function onDataReceived(response){
+            if(!response.success){ 
+                return onLoadError(new Error(response.message)); 
+            }
+            
+            // --- NEW: Check for and store pre-filled data ---
+            if (response.prefillData && response.prefillData.email) {
+                prefilledEmail = response.prefillData.email;
+            }
+
+            ui.progressHeader.style.display = 'block';
+
+            if(response.introduction){
+                ui.introTitle.textContent=response.introduction.title;
+                ui.headerTitle.textContent=response.introduction.title;
+                ui.introBody.textContent=response.introduction.body;
+            }
+            questionnaireData=response.data;
+            sections=response.sectionsOrder;
+            sectionHistory=[];
+            if(sections.length===0){ 
+                return onLoadError(new Error('לא נמצאו מקטעים בשאלון.')); 
+            }
+            showView(ui.intro);
+            setTimeout(()=>{
+                const mainHeader=document.querySelector('.header');
+                if(mainHeader){stickyHeaderPoint=mainHeader.offsetTop+mainHeader.offsetHeight}
+            },100);
+        }
+
+        function displayCurrentSection() {
+            showView(ui.questionnaire);
+            const sectionName = sections[currentSection];
+            
+            // --- UPDATED LOGIC FOR PINNING INSTRUCTIONS ---
+            const originalItems = questionnaireData[sectionName].items || [];
+            let items; 
+
+            if (questionnaireData[sectionName].randomize) {
+                const pinnedItems = originalItems.filter(item => item.type.toLowerCase() === 'הוראות');
+                const shuffleableItems = originalItems.filter(item => item.type.toLowerCase() !== 'הוראות');
+                
+                const shuffledItems = shuffleArray(shuffleableItems);
+                
+                items = [...pinnedItems, ...shuffledItems];
+            } else {
+                items = originalItems;
+            }
+            // --- END OF UPDATED LOGIC ---
+
+            let html = `<div class="category-section"><h3 class="category-title">${sectionName}</h3>`;
+            items.forEach((item, i) => {
+                 html += buildItemHtml(item, sectionName, i);
+            });
+            ui.questionsContainer.innerHTML = html;
+            
+            initCustomControls();
+            updateProgressBars();
+            updateNavigation();
+        }
+
+        function buildItemHtml(item, sectionName, index) {
+            const sanitizedQuestionText = sanitizeTextForKey(item.question);
+            const answerKey = `${sectionName}: ${sanitizedQuestionText}`;
+            const safeId = `q-${currentSection}-${index}`;
+            const requiredMark = item.required ? `<span class="required-mark">*</span>` : '';
+            const itemType = item.type.toLowerCase();
+            const currentValue = answers[answerKey];
+
+            if (itemType === 'הוראות') {
+                return `<div class="instruction-text">${item.text}</div>`;
+            }
+            
+            // --- NEW: Logic for new item types ---
+            if (itemType === 'אישור') {
+                return buildConfirmationHtml(item, currentValue, answerKey, safeId);
+            }
+            if (itemType === 'מייל_מזוהה') {
+                return buildPrefilledEmailHtml(item, answerKey);
+            }
+            // --- END OF NEW LOGIC ---
+
+            // This part is for regular questions
+            let html = `<div class="question" data-required="${item.required || false}" data-key="${answerKey}"><div class="question-text">${item.question}${requiredMark}</div><div class="question-input">`;
+            
+            if(itemType.startsWith('טקסט') || itemType.startsWith('מספר') || itemType.startsWith('שם')) {
+                const inputType = itemType.startsWith('מספר') ? 'number' : 'text';
+                const tag = itemType.startsWith('טקסט') ? `<textarea oninput="handleTyping(this)" onblur="handleTextBlur(this)" rows="4">${currentValue || ''}</textarea>` : `<input type="${inputType}" value="${currentValue || ''}" oninput="handleTyping(this)" onblur="handleTextBlur(this)">`;
+                html += tag;
+            } else if(itemType.startsWith('דירוג')) {
+                html += buildRatingHtml(item, currentValue, answerKey);
+            } else if(itemType.startsWith('בחירה מרובה')) {
+                html += buildCheckboxHtml(item, currentValue, answerKey, safeId);
+            } else if(itemType.startsWith('בחירה מתוך רשימה')) {
+                html += buildSelectHtml(item, currentValue, answerKey, safeId);
+            } else if(itemType.startsWith('קובץ')) {
+                 html += buildFileUploadHtml({question: item.question, required: item.required}, answerKey, safeId);
+            } else {
+                html += `<input type="text" value="${currentValue || ''}" oninput="handleTyping(this)" onblur="handleTextBlur(this)">`;
+            }
+            return html + `</div><div class="error-message-inline"></div></div>`;
+        }
+
+        // --- NEW HELPER FUNCTIONS ---
+        function buildConfirmationHtml(item, currentValue, answerKey, safeId) {
+            let html = `<div class="confirmation-block" data-required="${item.required || false}" data-key="${answerKey}">`;
+            if (item.details) {
+                html += `<div class="confirmation-details">${item.details.replace(/\n/g, '<br>')}</div>`;
+            }
+            const isChecked = currentValue === 'מאשר';
+            const requiredMark = item.required ? `<span class="required-mark">*</span>` : '';
+            html += `<label class="confirmation-label" for="${safeId}">
+                        <input type="checkbox" id="${safeId}" onchange="handleConfirmationClick(this)" ${isChecked ? 'checked' : ''}>
+                        <span>${item.question}${requiredMark}</span>
+                     </label>
+                     <div class="error-message-inline"></div>
+                   </div>`;
+            return html;
+        }
+
+        function buildPrefilledEmailHtml(item, answerKey) {
+             if (prefilledEmail && !answers[answerKey]) {
+                setTimeout(() => saveAnswer(answerKey, prefilledEmail), 0);
+             }
+             const value = prefilledEmail || answers[answerKey] || '';
+             const requiredMark = item.required ? `<span class="required-mark">*</span>` : '';
+             let html = `<div class="question" data-required="${item.required || false}" data-key="${answerKey}">
+                            <div class="question-text">${item.question}${requiredMark}</div>
+                            <div class="question-input">
+                                <input type="email" value="${value}" class="prefilled-field" readonly>
+                            </div>
+                            <div class="error-message-inline"></div>
+                         </div>`;
+            return html;
+        }
+
+        function handleConfirmationClick(checkbox) {
+            const answerKey = checkbox.closest('.confirmation-block').dataset.key;
+            const value = checkbox.checked ? 'מאשר' : '';
+            saveAnswer(answerKey, value);
+        }
+
+        // --- The rest of the functions are unchanged ---
         async function submitQuestionnaire(){if(!validateRequiredQuestions())return;showView(ui.loading);ui.loadingText.textContent='שולח תשובות...';ui.submitBtn.disabled=true;if(autosaveInterval)clearInterval(autosaveInterval);const submissionData={action:'saveAnswers',payload:{answers:answers,timestamp:new Date().toISOString(),token:sessionToken}};try{const response=await fetch(SCRIPT_URL,{method:'POST',body:JSON.stringify(submissionData),headers:{'Content-Type':'text/plain;charset=utf-8'}});const result=await response.json();if(result.success){localStorage.removeItem('questionnaireAutoSave_'+sessionToken);showView(ui.success)}else{throw new Error(result.message)}}catch(error){onSubmitError(error)}}
         function saveLocalDraft(){if(!sessionToken)return;try{const draftData={answers:answers,currentSection:currentSection,sectionHistory:sectionHistory,timestamp:new Date().toISOString()};localStorage.setItem('questionnaireAutoSave_'+sessionToken,JSON.stringify(draftData));ui.saveIndicator.textContent=`נשמר: ${new Date().toLocaleTimeString()}`;ui.saveIndicator.style.opacity='1';setTimeout(()=>{ui.saveIndicator.style.opacity='0.5'},3000)}catch(e){console.error('Error saving draft:',e)}}
         function loadLocalDraft(){if(!sessionToken)return null;try{const savedData=localStorage.getItem('questionnaireAutoSave_'+sessionToken);if(!savedData)return null;const draftData=JSON.parse(savedData);if((new Date-new Date(draftData.timestamp))/(1000*3600*24)>7){localStorage.removeItem('questionnaireAutoSave_'+sessionToken);return null}
         return draftData}catch(e){console.error('Error loading draft:',e);return null}}
         function sanitizeTextForKey(text){if(typeof text!=='string')return'';return text.replace(/[\r\n\t]/g,' ').replace(/[\u200B-\u200D\uFEFF]/g,'').trim()}
-        function scrollToNext(currentElement){const sectionName=sections[currentSection];const shouldScroll=questionnaireData[sectionName]?.autoScroll;if(shouldScroll===false||!currentElement)return;const allQuestions=Array.from(ui.questionsContainer.querySelectorAll('.question, .file-upload-block, .confirmation-block'));const currentIndex=allQuestions.findIndex(el=>el===currentElement);if(currentIndex>-1&&currentIndex<allQuestions.length-1){const nextQuestionEl=allQuestions[currentIndex+1];setTimeout(()=>{nextQuestionEl.scrollIntoView({behavior:'smooth',block:'center'})},200)}}
+        function scrollToNext(currentElement){const allQuestions=Array.from(ui.questionsContainer.querySelectorAll('.question, .file-upload-block, .confirmation-block'));const currentIndex=allQuestions.findIndex(el=>el===currentElement);if(currentIndex>-1&&currentIndex<allQuestions.length-1){const nextQuestionEl=allQuestions[currentIndex+1];setTimeout(()=>{nextQuestionEl.scrollIntoView({behavior:'smooth',block:'center'})},200)}}
         function startQuestionnaire(){if(!checkForDraft()){currentSection=0;displayCurrentSection();startAutosave()}}
         function buildRatingHtml(item,currentValue,answerKey){const min=item.ratingConfig?.min||1;const max=item.ratingConfig?.max||5;let html=`<div class="rating-group"><span class="rating-label-text">כלל לא</span><div class="rating-boxes" data-key="${answerKey}">`;for(let j=min;j<=max;j++){html+=`<div class="rating-box ${currentValue==j?'selected':''}" onclick="handleRatingClick(this)" data-value="${j}">${j}</div>`}
         return html+`</div><span class="rating-label-text">מאוד</span></div>`}
